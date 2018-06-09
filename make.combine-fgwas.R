@@ -18,7 +18,7 @@ library(tidyr)
 
 dir.create(dirname(out.file), recursive = TRUE, showWarnings = FALSE)
 
-read.summary <- function(ld.idx, result.dir, lodds.cutoff, trait.lodds.cutoff) {
+read.summary <- function(ld.idx, result.dir, lodds.cutoff) {
 
     .collapse <- function(...) paste(..., collapse = '|')
 
@@ -43,23 +43,17 @@ read.summary <- function(ld.idx, result.dir, lodds.cutoff, trait.lodds.cutoff) {
             mutate(factor = as.integer(factor)) %>%
                 filter(factor %in% valid.factors)
 
-        show.traits <- trait.tab %>% filter(factor %in% valid.factors) %>%
-            filter(lodds > trait.lodds.cutoff) %>%
-                select(trait) %>% unlist() %>% unique()
-
         var.summary <-
-            var.trait %>% select(factor, trait, var) %>%
-                filter(trait %in% show.traits)
+            var.trait %>% select(factor, trait, var)
 
         trait.summary <- trait.tab %>% filter(factor %in% valid.factors) %>%
-            filter(lodds > trait.lodds.cutoff) %>%
-                left_join(var.summary) %>%
-                    group_by(chr, ld.idx, LB, UB, factor) %>%
-                        summarize(trait = .collapse(trait),
-                                  trait.theta = .collapse(theta),
-                                  trait.theta.se = .collapse(theta.se),
-                                  trait.lodds = .collapse(lodds),
-                                  var = .collapse(var))
+            left_join(var.summary) %>%
+                group_by(chr, ld.idx, LB, UB, factor) %>%
+                    summarize(trait = .collapse(trait),
+                              trait.theta = .collapse(theta),
+                              trait.theta.se = .collapse(theta.se),
+                              trait.lodds = .collapse(lodds),
+                              var = .collapse(var))
 
         traits <- trait.tab %>% select(trait) %>% unique() %>% unlist()
 
@@ -69,7 +63,7 @@ read.summary <- function(ld.idx, result.dir, lodds.cutoff, trait.lodds.cutoff) {
                     left_join(z.tab %>% select(-chr, -rs, -a1, -a2, -plink.pos)) %>%
                         gather_(key_col= 'snp.best.trait',
                                 value_col = 'snp.best.z',
-                                gather_col = show.traits)
+                                gather_col = traits)
 
         z.summary <- z.summary %>%
             group_by(snp.loc, factor) %>%
@@ -100,8 +94,7 @@ out.tab <-
     ld.info$ld.idx %>%
         lapply(FUN = read.summary,
                result.dir = result.dir,
-               lodds.cutoff = log(pip.cutoff) - log(1 - pip.cutoff),
-               trait.lodds.cutoff = 0) %>%
+               lodds.cutoff = log(pip.cutoff) - log(1 - pip.cutoff)) %>%
                    bind_rows()
 
 write_tsv(out.tab, out.file)
