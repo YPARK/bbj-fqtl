@@ -44,7 +44,26 @@ jobs/20180606/conf-%.txt.gz:
 
 queue_fgwas: $(foreach k, 20 50, jobs/20180606/fgwas-$(k).txt.gz)
 
+queue_fgwas_long: $(foreach k, 20 50, jobs/20180606/fgwas-$(k)-long.gz)
+
 jobs/20180606/fgwas-%.txt.gz:
 	[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	seq 1 $(nLD) | awk '{ print "./make.fgwas.R" FS $$1 FS "$(LD)" FS "$(DATA)" FS "$(TRAITS_STR)" FS ("result/20180606/confounder/$*/" $$1 ".txt.gz") FS $* FS ("result/20180606/fgwas/$*/" $$1) }' | gzip > $@
 	qsub -P compbio_lab -o /dev/null -binding "linear:1" -cwd -V -l h_vmem=4g -l h_rt=2:00:00 -b y -j y -N BBJ_GWAS_$* -t 1-$$(zcat $@ | wc -l) ./run_rscript.sh $@
+
+jobs/20180606/fgwas-%-long.gz: jobs/20180606/fgwas-%.txt.gz
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@zcat $< | awk 'system("! [ -f " $$NF ".zscore.gz ]") == 0' | gzip > $@
+	[ $$(zcat $@ | wc -l) -gt 0 ] && qsub -P compbio_lab -o /dev/null -binding "linear:1" -cwd -V -l h_vmem=4g -l h_rt=16:00:00 -b y -j y -N BBJ_LONG_FGWAS -t 1-$$(zcat $@ | wc -l) ./run_rscript.sh $@
+
+
+################################################################
+queue_summary: $(foreach k, 20 50, jobs/20180606/summary-$(k).txt.gz)
+
+jobs/20180606/summary-%.txt.gz:
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	echo "./make.combine-fgwas.R result/20180606/fgwas/$*/ $(LD) 0.5 result/20180606/fgwas-$*-05.txt.gz" | gzip > $@
+	echo "./make.combine-fgwas.R result/20180606/fgwas/$*/ $(LD) 0.9 result/20180606/fgwas-$*-09.txt.gz" | gzip >> $@
+	qsub -P compbio_lab -o /dev/null -binding "linear:1" -cwd -V -l h_vmem=8g -l h_rt=2:00:00 -b y -j y -N BBJ_SUM_$* -t 1-$$(zcat $@ | wc -l) ./run_rscript.sh $@
+
+
