@@ -13,6 +13,12 @@ conf.file <- argv[5]          # e.g., 'result/20180606/confounder/50/1.txt.gz'
 K <- as.integer(argv[6])      # e.g., 10
 out.hdr <- argv[7]            # e.g., 'temp'
 
+non.neg <- TRUE
+
+if(length(argv) > 7) {
+    non.neg <- as.logical(argv[8])
+}
+
 ## trait.names <- 'AG:ALP:ALT:APTT:AST:Alb:BS:BUN:Baso:CK:CRP:Ca:Cl:DBP:EA:EF:Eosino:FS:Fbg:GGT:HDL-C:Hb:HbA1c:Ht:IVS:K:LDH:LDL-C:LVDd:LVDs:LVM:LVMI:Lym:MAP:MCH:MCHC:MCV:Mono:NAP:Na:Neutro:P:PP:PT:PW:Plt:RBC:RWT:SBP:TBil:TC:TG:TP:UA:WBC:ZTT:eGFR:sCr'
 
 options(stringsAsFactors = FALSE)
@@ -112,7 +118,7 @@ vb.opt <- list(pi.ub = -0, pi.lb = -3, tau = -5, do.hyper = TRUE,
                do.stdize = TRUE, eigen.tol = 1e-2, gammax = 1e2,
                svd.init = TRUE, do.rescale = TRUE,
                jitter = 0.1, vbiter = 5000, rate = 1e-2, decay = -1e-2,
-               tol = 0, right.nn = TRUE, k = K)
+               tol = 0, right.nn = non.neg, k = K)
 
 z.out <- fit.zqtl(effect = gwas.data$beta, effect.se = gwas.data$se,
                   X = gwas.data$X, C.delta = Z.conf, factored = TRUE,
