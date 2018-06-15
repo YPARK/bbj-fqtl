@@ -36,10 +36,11 @@ read.summary <- function(ld.idx, result.dir, lodds.cutoff) {
 
         trait.tab <- suppressMessages(read_tsv(trait.file))
         z.tab <- suppressMessages(read_tsv(z.file))
-        var.tab <- suppressMessages(read_tsv(var.file, col_types = 'iiiiiiccd'))
+        var.tab <- suppressMessages(read_tsv(var.file, col_types = 'iiiiccd'))
 
         var.tot <- var.tab %>% filter(factor == 'total')
-        var.trait <- var.tab %>% filter(factor != 'total') %>%
+        var.conf <- var.tab %>% filter(factor == 'conf')
+        var.trait <- var.tab %>% filter(factor != 'total', factor != 'conf') %>%
             mutate(factor = as.integer(factor)) %>%
                 filter(factor %in% valid.factors)
 

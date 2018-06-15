@@ -29,10 +29,11 @@ dir.create(dirname(out.hdr), recursive = TRUE, showWarnings = FALSE)
 snp.factor.file <- out.hdr %&&% '.snp-factor.gz'
 trait.factor.file <- out.hdr %&&% '.trait-factor.gz'
 zscore.file <- out.hdr %&&% '.zscore.gz'
+resid.file <- out.hdr %&&% '.resid.gz'
 var.file <- out.hdr %&&% '.var.gz'
 conf.out.file <- out.hdr %&&% '.conf.gz'
 
-.files <- c(snp.factor.file, trait.factor.file, zscore.file, var.file, conf.out.file)
+.files <- c(snp.factor.file, trait.factor.file, zscore.file, resid.file, var.file, conf.out.file)
 
 if(all(sapply(.files, file.exists))) {
     log.msg('Files exists:\n%s\n', paste(.files, collapse = '\n'))
@@ -46,8 +47,8 @@ library(readr)
 
 ld.info <- read.ld.info(ld.idx, ld.file)
 
-temp.dir <- system('mkdir -p /broad/hptmp/ypp/ukbb-fgwas/' %&&% out.hdr %&&%
-                   '; mktemp -d /broad/hptmp/ypp/ukbb-fgwas/' %&&% out.hdr %&&%
+temp.dir <- system('mkdir -p /broad/hptmp/ypp/bbj-fgwas/' %&&% out.hdr %&&%
+                   '; mktemp -d /broad/hptmp/ypp/bbj-fgwas/' %&&% out.hdr %&&%
                    '/temp.XXXXXXXX',
                    intern = TRUE,
                    ignore.stderr = TRUE)
@@ -81,6 +82,16 @@ if(!all(file.exists(gwas.files))) {
 gwas.stat.tab <- gwas.files %>% read.gwas.files(plink.obj = plink)
 if(is.null(gwas.stat.tab)) {
     log.msg('Failed to read GWAS files\n')
+    q()
+}
+
+if(nrow(gwas.stat.tab) < 1) {
+    write_tsv(data.frame(), path = gzfile(conf.out.file))
+    write_tsv(data.frame(), path = gzfile(var.file))
+    write_tsv(data.frame(), path = gzfile(snp.factor.file))
+    write_tsv(data.frame(), path = gzfile(trait.factor.file))
+    write_tsv(data.frame(), path = gzfile(zscore.file))
+    write_tsv(data.frame(), path = gzfile(resid.file))
     q()
 }
 
@@ -128,13 +139,11 @@ log.msg('Finished fQTL estimation\n\n')
 
 LD.info <- gwas.data$snps %>%
     summarize(chr = min(chr),
-              snp.lb = min(snp.loc),
-              snp.ub = max(snp.loc),
               ld.idx,
               LB = ld.info$lb.input,
               UB = ld.info$ub.input)
 
-var.tab <- estimate.variance(z.out, gwas.data$se)
+var.tab <- estimate.variance(z.out, traits, se.mat = gwas.data$se)
 var.tab <- data.frame(LD.info, var.tab)
 
 right.tab <- melt.effect(z.out$param.right, traits, 1:K) %>%
@@ -163,10 +172,16 @@ conf.assoc.tab <- melt.effect(z.out$conf.delta, 1:n.c, traits) %>%
         mutate(theta.se = signif(sqrt(theta.se), 2)) %>%
             as.data.frame()
 
+## estimate residual z-score matrix w/o confounding effects
+resid.tab <- gwas.data$zz
+resid.hat <- t(z.out$Vt) %*% z.out$Y - Z.conf %*% z.out$conf.delta$theta
+resid.tab[, traits] <- round(resid.hat, 4)
+
 write_tsv(conf.assoc.tab, path = gzfile(conf.out.file))
 write_tsv(var.tab, path = gzfile(var.file))
 write_tsv(left.tab, path = gzfile(snp.factor.file))
 write_tsv(right.tab, path = gzfile(trait.factor.file))
 write_tsv(gwas.data$zz, path = gzfile(zscore.file))
+write_tsv(resid.tab, path = gzfile(resid.file))
 
 log.msg('Successfully finished fQTL\n\n')
