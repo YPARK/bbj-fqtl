@@ -14,4 +14,3 @@ jobs/20180615/qc-%.txt.gz:
 	seq 1 $(nLD) | awk '{ print "./make.fgwas-qc.R" FS $$1 FS "$(LD)" FS "result/20180613/fgwas/$*/" FS "$(LODD)" FS ("result/20180615/fgwas-qc/$*/" $$1 ".txt.gz") }' | gzip > $@
 	seq 1 $(nLD) | awk '{ print "./make.fgwas-qc.R" FS $$1 FS "$(LD)" FS "result/20180613/fgwas_nn/$*/" FS "$(LODD)" FS ("result/20180615/fgwas_nn-qc/$*/" $$1 ".txt.gz") }' | gzip >> $@
 	qsub -P compbio_lab -o /dev/null -binding "linear:1" -cwd -V -l h_vmem=4g -l h_rt=2:00:00 -b y -j y -N BBJ_QC_$* -t 1-$$(zcat $@ | wc -l) ./run_rscript.sh $@
-

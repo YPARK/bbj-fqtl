@@ -11,6 +11,8 @@ result.dir <- argv[3]                # e.g., 'temp'
 lodds.cutoff <- as.numeric(argv[4])  # e.g., 0
 out.file <- argv[5]                  # e.g., 'temp.txt.gz'
 
+dir.create(dirname(out.file), recursive = TRUE, showWarnings = FALSE)
+
 if(file.exists(out.file)){
     q()
 }
