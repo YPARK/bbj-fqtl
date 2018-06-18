@@ -94,22 +94,37 @@ read.summary <- function(ld.idx, result.dir, lodds.cutoff) {
                                   gwas.6 = sum(p < 1e-6),
                                   gwas.8 = sum(p < 1e-8))
 
+        ## number of GWAS SNPs after correcting out
+        .gwas.resid <- resid.tab %>%
+            gather_(key_col = 'trait', value_col = 'z', gather_cols = traits) %>%
+                mutate(p = 2 * pnorm(abs(z), lower.tail = FALSE))
+
+        .gwas.trait.resid <- .gwas.resid %>%
+            group_by(trait) %>%
+                summarize(resid.4 = sum(p < 1e-4),
+                          resid.6 = sum(p < 1e-6),
+                          resid.8 = sum(p < 1e-8))
+
         trait.summary <- trait.tab %>%
             filter(factor %in% valid.factors) %>%
                 left_join(.gwas.trait) %>%
-                    left_join(var.summary) %>%
-                        group_by(chr, ld.idx, LB, UB, factor) %>%
-                            summarize(trait = .collapse(trait),
-                                      trait.theta = .collapse(theta),
-                                      trait.theta.se = .collapse(theta.se),
-                                      trait.lodds = .collapse(lodds),
-                                      var.factor = .collapse(var.factor),
-                                      var.conf = .collapse(var.conf),
-                                      var.gen = .collapse(var.gen),
-                                      gwas.4 = .collapse(gwas.4),
-                                      gwas.6 = .collapse(gwas.6),
-                                      gwas.8 = .collapse(gwas.8))
-
+                    left_join(.gwas.trait.resid) %>%
+                        left_join(var.summary) %>%
+                            group_by(chr, ld.idx, LB, UB, factor) %>%
+                                summarize(trait = .collapse(trait),
+                                          trait.theta = .collapse(theta),
+                                          trait.theta.se = .collapse(theta.se),
+                                          trait.lodds = .collapse(lodds),
+                                          var.factor = .collapse(var.factor),
+                                          var.conf = .collapse(var.conf),
+                                          var.gen = .collapse(var.gen),
+                                          gwas.4 = .collapse(gwas.4),
+                                          gwas.6 = .collapse(gwas.6),
+                                          gwas.8 = .collapse(gwas.8),
+                                          resid.4 = .collapse(resid.4),
+                                          resid.6 = .collapse(resid.6),
+                                          resid.8 = .collapse(resid.8))
+        
         snp.summary <- snp.tab %>% filter(lodds > lodds.cutoff) %>%
             left_join(z.summary) %>%
                 group_by(chr, ld.idx, LB, UB, factor) %>%
