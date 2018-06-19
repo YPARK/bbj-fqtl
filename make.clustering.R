@@ -76,7 +76,7 @@ M <- pmin(pmax(M, -lodds.trunc), lodds.trunc)
 
 ################################################################
 ## run clustering
-
+K.max <- min(max(nrow(M) - 2, 2), K.max)
 opt <- Optimal_Clusters_KMeans(M, max_clusters = K.max,
                                num_init = 3,
                                plot_clusters = FALSE,
@@ -165,5 +165,5 @@ trait.stat <- trait.tab %>%
 
 write_tsv(trait.membership, path = trait.file)
 write_tsv(snp.membership, path = snp.file)
-write_tsv(clust.membership, path = clust.file)
+write_tsv(clust.stat, path = clust.file)
 
