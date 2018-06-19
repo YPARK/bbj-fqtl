@@ -1,5 +1,14 @@
 #!/usr/bin/env Rscript
-## Identify clusters of tissue patterns
+
+argv <- commandArgs(trailingOnly = TRUE)
+
+if(length(argv) < 3) {
+    q()
+}
+
+stat.file <- argv[1] # e.g., stat.file = 'result/20180613/fgwas-50-05.txt.gz'
+K.max <- as.integer(argv[2]) # e.g., K.max = 100
+out.hdr <- argv[3]
 
 library(readr)
 library(dplyr)
@@ -7,15 +16,22 @@ library(tidyr)
 source('util.R')
 library(ClusterR)
 
-stat.file <- 'result/20180613/fgwas-50-09.txt.gz'
-K.max <- 50
+clust.file <- out.hdr %&&% '.clust.txt.gz'
+snp.file <- out.hdr %&&% '.snp.txt.gz'
+trait.file <- out.hdr %&&% '.trait.txt.gz'
 
-################################################################
+.files <- c(snp.file, trait.file, clust.file)
+if(all(sapply(.files, file.exists))) {
+    log.msg('Files exist: %s\n', paste(.files, sep = ', '))
+    q()
+}
 
 stat.tab <- read_tsv(stat.file)
 
-.split <- function(...) unlist(..., use.names = FALSE) %>%
-    strsplit(split = '[|]') %>% (function(x) x[[1]])
+.split <- function(...) {
+    unlist(..., use.names = FALSE) %>%
+        strsplit(split = '[|]') %>% (function(x) x[[1]])
+}
 .split.d <- function(...) .split(...) %>% as.numeric()
 .split.i <- function(...) .split(...) %>% as.integer()
 
@@ -24,7 +40,8 @@ stat.tab <- read_tsv(stat.file)
                trait.theta = .split.d(tab$trait.theta),
                trait.se = .split.d(tab$trait.theta.se),
                trait.lodds = .split.d(tab$trait.lodds),
-               gwas.6 = .split.d(tab$gwas.6))
+               gwas.6 = .split.d(tab$gwas.6),
+               resid.6 = .split.d(tab$resid.6))
 }
 
 .split.snp <- function(tab) {
@@ -39,7 +56,8 @@ stat.tab <- read_tsv(stat.file)
 trait.tab <- stat.tab %>%
     group_by(ld.idx, factor) %>%
     do(.split.trait(.)) %>%
-    select(ld.idx, factor, trait, starts_with('trait'), starts_with('gwas'))
+    select(ld.idx, factor, trait, starts_with('trait'),
+           starts_with('gwas'), starts_with('resid'))
 
 trait.mat <- trait.tab %>%
     select(ld.idx, factor, trait, trait.lodds) %>%
@@ -68,15 +86,19 @@ opt <- Optimal_Clusters_KMeans(M, max_clusters = K.max,
 
 K <- which.min(opt)
 
-clust.out <- KMeans_rcpp(M, clusters = K, num_init = 3, max_iters = 200,
-                         verbose = TRUE, seed = 13)
+clust.out <- KMeans_rcpp(M, clusters = K,
+                         num_init = 3,
+                         max_iters = 200,
+                         verbose = TRUE,
+                         seed = 13)
 
 ################################################################
 ## reorder centroids
 C <- clust.out$centroid
-ko <- row.order(C > 0)         # cluster order
+ko <- row.order(C > 0)
 to.2 <- row.order(t(C) > 0)    # trait order for pair-wise map
-to <- order(apply(C[ko, ] > 0, 2, function(x) max(which(x))), decreasing = TRUE)
+to <- apply(C[ko, ] > 0, 2, function(x) median(which(x))) %>%
+    order(decreasing = TRUE)
 
 clust.order.tab <- 
     tibble(k = as.integer(ko)) %>%
@@ -93,12 +115,14 @@ factor2clust.tab <- trait.mat[, 1:2] %>%
     mutate(k = clust.out$clusters) %>%
     left_join(clust.order.tab)
 
-centroid.tab <- cbind(k = 1:K, clust.out$centroid) %>% as.data.frame() %>%
+centroid.tab <- cbind(k = 1:K, clust.out$centroid) %>%
+    as.data.frame() %>%
     gather(key = trait, value = lodds, trait.order.tab$trait) %>%
     mutate(pip = 1/(1+exp(-lodds))) %>%
     mutate(trait = factor(trait, trait.order.tab$trait.o)) %>%
     left_join(clust.order.tab)    
 
+################################################################
 ## reordered data
 snp.membership <- snp.tab %>% 
     left_join(factor2clust.tab) %>%
@@ -125,9 +149,10 @@ trait.membership <-
     mutate(col = factor(col, factor.o$cols))
 
 clust.stat <- 
-    snp.membership %>% group_by(cluster) %>% summarize(n.snp = n()) %>%
-    left_join(factor2clust.tab %>% group_by(cluster) %>% summarize(n.factor = n())) %>%
-    left_join(trait.membership %>% group_by(cluster) %>% summarize(n.trait = n()))
+    snp.membership %>% group_by(cluster) %>%
+    summarize(n.snp = n()) %>%
+    left_join(factor2clust.tab %>% group_by(cluster) %>%
+              summarize(n.factor = n()))
 
 trait.stat <- trait.tab %>%
     filter(trait.lodds > 0) %>%
@@ -136,60 +161,9 @@ trait.stat <- trait.tab %>%
     summarize(n.cluster = n())
 
 ################################################################
+## Save clustering results
 
-.aes <- aes(x = col, y = trait, fill = pip)
+write_tsv(trait.membership, path = trait.file)
+write_tsv(snp.membership, path = snp.file)
+write_tsv(clust.membership, path = clust.file)
 
-plt <- gg.plot(trait.membership, .aes) +
-    theme(axis.text.x = element_blank(), panel.spacing = unit(0.1, 'lines')) +
-    geom_tile(color = 'gray') +
-    facet_grid(.~cluster, space = 'free', scales = 'free') +
-    scale_fill_gradientn('PIP', colors = c('#FFFFFF', '#FF0000'),
-                         breaks = c(0, .05, .25, .5, .75, .95, 1))
-
-plt <- plt + xlab('Factors') + ylab('Traits')
-
-plt
-
-.aes <- aes(x = col, y = trait, fill = gwas.6)
-
-plt <- gg.plot(trait.membership, .aes) +
-    theme(axis.text.x = element_blank(), panel.spacing = unit(0.1, 'lines')) +
-    geom_tile(color = 'gray') +
-    facet_grid(.~cluster, space = 'free', scales = 'free') +
-    scale_fill_gradientn('# p < 1e-6',
-                         colors = c('#FFFFFF', '#FFAA00', '#FF0000'),
-                         breaks = c(1, 10, 100, 1000),
-                         trans = 'log10', na.value = '#FFFFFF')
-
-plt <- plt + xlab('Factors') + ylab('Traits')
-
-plt
-
-################################################################
-
-TODO
-
-
-
-################################################################
-## save trait order
-## write_tsv(data.frame(trait = traits.ordered) %>% mutate(trait.order = 1:n()),
-##           path = gzfile('result/ukbb-fqtl-traits-order.txt.gz'))
-##
-## write_tsv(centroid.tab, path = gzfile(centroid.out.file))
-
-################################################################
-plt <-
-    gg.plot(centroid.tab, aes(x = cluster, y = trait, fill = pip)) +
-    geom_tile(color = 'gray') +
-    scale_fill_gradientn('PIP', colors = c('#FFFFFF', '#FF0000'),
-                         breaks = c(0, .05, .25, .5, .75, .95, 1))
-
-plt <- plt +
-    xlab('Clustered genomic regions') + ylab(nrow(trait.order.tab) %&&% ' traits') +
-    theme(legend.background = element_rect(fill = 'white', color = 'white'),
-          axis.text.x = element_text(size = 4))
-
-plt
-
-log.msg('Done\n')
