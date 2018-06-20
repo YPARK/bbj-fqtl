@@ -1,0 +1,59 @@
+Category	Trait	Code	#samples
+Metabolic	Total cholesterol	TC	128,305
+Metabolic	High density lipoprotein cholesterol	HDL-C	70,657
+Metabolic	Low density lipoprotein cholesterol	LDL-C	72,866
+Metabolic	Triglyceride	TG	105,597
+Metabolic	Blood sugar	BS	93,146
+Metabolic	Hemoglobin A1c	HbA1c	42,790
+Protein	Total protein	TP	113,509
+Protein	Albumin	Alb	102,223
+Protein	Non-albumin protein	NAP	98,538
+Protein	Albumin/globulin ratio	AG	98,626
+Kidney-related	Blood urea nitrogen	BUN	139,818
+Kidney-related	Serum creatinine	sCr	142,097
+Kidney-related	Estimated glomerular filtration rate	eGFR	143,658
+Kidney-related	Uric acid	UA	109,029
+Electrolyte	Sodium	Na	127,304
+Electrolyte	Potassium	K	132,938
+Electrolyte	Chlorine	Cl	126,402
+Electrolyte	Calcium	Ca	71,701
+Electrolyte	Phosphorus	P	42,793
+Liver-related	Total bilirubin	TBil	110,207
+Liver-related	Zinc sulfate turbidity test	ZTT	12,303
+Liver-related	Aspartate aminotransferase	AST	134,154
+Liver-related	Alanine aminotransferase	ALT	134,182
+Liver-related	Alkaline phosphatase	ALP	105,030
+Liver-related	Gamma-glutamyl transferase	GGT	118,309
+Other biochemical	Activated partial thromboplastin time	APTT	37,767
+Other biochemical	Prothrombin time	PT	58,110
+Other biochemical	Fibrinogen	Fbg	18,348
+Other biochemical	Creatine kinase	CK	106,080
+Other biochemical	Lactate dehydrogenase	LDH	126,319
+Other biochemical	C-reactive protein	CRP	75,391
+Hematological	White blood cell count	WBC	107,964
+Hematological	Neutrophil count	Neutro	62,076
+Hematological	Eosinophil count	Eosino	62,076
+Hematological	Basophil count	Baso	62,076
+Hematological	Monocyte count	Mono	62,076
+Hematological	Lymphocyte count	Lym	62,076
+Hematological	Red blood cell count	RBC	108,794
+Hematological	Hemoglobin	Hb	108,769
+Hematological	Hematocrit	Ht	108,757
+Hematological	Mean corpuscular volume	MCV	108,256
+Hematological	Mean corpuscular hemoglobin	MCH	108,054
+Hematological	Mean corpuscular hemoglobin concentration	MCHC	108,728
+Hematological	Platelet count	Plt	108,208
+Blood pressure	Systolic blood pressure	SBP	136,597
+Blood pressure	Diastolic blood pressure	DBP	136,615
+Blood pressure	Mean arterial pressure	MAP	136,482
+Blood pressure	Pulse pressure	PP	136,249
+Echocardiographic	Interventricular septum thickness	IVS	19,318
+Echocardiographic	Posterior wall thickness	PW	19,373
+Echocardiographic	Left ventricular internal dimension in diastole	LVDd	19,676
+Echocardiographic	Left ventricular internal dimension in systole	LVDs	19,586
+Echocardiographic	Left ventricular mass	LVM	19,076
+Echocardiographic	Left ventricular mass index	LVMI	17,837
+Echocardiographic	Relative wall thickness	RWT	19,311
+Echocardiographic	Fractional shortening	FS	19,580
+Echocardiographic	Ejection fraction	EF	19,516
+Echocardiographic	E/A ratio	EA	8,600
